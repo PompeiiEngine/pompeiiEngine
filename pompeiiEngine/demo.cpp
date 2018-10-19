@@ -20,10 +20,25 @@
 #include <iostream>
 
 #include <pompeiiEngine/pompeiiEngine.h>
-using namespace pompeii;
+using namespace pompeii::engine;
 
 int main( int, char** )
 {
-  app.show( );
+  GameObject* world = new GameObject( );
+  std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
+  Light* l = new Light( );
+  world->addComponent( l );
+  std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
+  world->addComponent( new Mesh( ) );
+  std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
+  world->removeComponent< Light >( );
+  std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
+  world->removeComponent( Mesh::StaticGetUID( ) );
+  std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
+  delete world;
+
+  auto sun = new GameObject( );
+  sun->addComponent< Mesh >( std::make_shared< Model > ( ) );
+  sun->addComponent< SimpleMaterial > ( glm::vec3( 1.0f, 0.0f, 0.0f ) );
   return EXIT_SUCCESS;
 }

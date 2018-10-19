@@ -8,14 +8,26 @@ include_directories(
 source_group(\\ FILES CMakeLists.txt)
 
 set( POMPEIIENGINE_PUBLIC_HEADERS
+  IComponent.h
   GameObject.h
+  Light.h
+  Mesh.h
+  IMaterial.h
+  SimpleMaterial.h
+)
+set( POMPEIIENGINE_HEADERS
+  includes.hpp
+  GameObject.inl
 )
 set( POMPEIIENGINE_SOURCES
   GameObject.cpp
+  SimpleMaterial.cpp
+  Mesh.cpp
 )
 
 set( POMPEIIENGINE_LINK_LIBRARIES
 #  pompeii
+  ${GLM_LIBRARIES}
 )
 
 set( POMPEIIENGINE_INCLUDE_NAME pompeiiEngine )

@@ -31,6 +31,12 @@ include(Common)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 
+common_find_package( GLM SYSTEM )
+
+common_find_package( Boost COMPONENTS unit_test_framework )
+
+
+list( APPEND POMPEIIENGINE_DEPENDENT_LIBRARIES GLM )
 
 IF (NOT WIN32)
   link_libraries( -lX11 -lXi -lXrandr -lXxf86vm -lXinerama -lXcursor -lrt -lm -pthread )
