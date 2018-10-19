@@ -1,2 +1,2 @@
 # -*- mode: cmake -*-
-#git_subproject(pompeii https://github.com/PompeiiEngine/pompeii.git dev)
+git_subproject(pompeii https://github.com/PompeiiEngine/pompeii.git dev)

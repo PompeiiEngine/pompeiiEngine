@@ -1,7 +1,7 @@
 #include "SimpleMaterial.h"
-#include "GameObject.h"
+#include "../GameObject.h"
 
-#include "Mesh.h"
+#include "../Meshes/Mesh.h"
 
 namespace pompeii
 {

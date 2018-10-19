@@ -1,20 +1,15 @@
 #pragma once
 
-#include "IComponent.h"
+#include "../Components/Component.h"
+#include "MaterialPipeline.h"
 #include <memory>
 
 namespace pompeii
 {
   namespace engine
   {
-    class MaterialPipeline
-    //  : public VulkanResource
-    {
-    private:
-      // pipeline, ....
-    };
-    class IMaterial:
-      public IComponent
+    class Material:
+      public Component
     {
     public:
       virtual void start( void ) override = 0;

@@ -1,25 +1,17 @@
 #pragma once
 
-#include "IComponent.h"
-#include "includes.hpp"
+#include "../Components/Component.h"
+#include "../includes.hpp"
 
 #include <memory>
+#include "Model.h"
 
 namespace pompeii
 {
   namespace engine
   {
-    class Model
-    //  : public VulkanResource
-    {
-    public:
-      Model( void );
-
-      bool cmdRender( /* commandBuffer */ );
-
-    };
     class Mesh:
-      public IComponent
+      public Component
     {
       IMPLEMENT_COMPONENT( Mesh )
     private:

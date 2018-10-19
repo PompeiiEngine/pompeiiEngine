@@ -16,13 +16,13 @@ namespace pompeii
       virtual ComponentUID GetUID( void ) const { return StaticGetUID( ); }
     
     class GameObject;
-    class IComponent
+    class Component
     {
     private:
       GameObject* _gameObject;
       bool _started, _enabled, _removed;
     public:
-      explicit IComponent( void ) :
+      explicit Component( void ) :
         _gameObject(nullptr),
         _started(false),
         _enabled(true),

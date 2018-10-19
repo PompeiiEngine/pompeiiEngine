@@ -4,18 +4,6 @@ namespace pompeii
 {
   namespace engine
   {
-    Model::Model( void )
-    {
-
-    }
-
-    bool Model::cmdRender( /* commandBuffer */ )
-    {
-      std::cout << "Bind VBO and EBO" << std::endl;
-
-      return true;
-    }
-
     Mesh::Mesh( const std::shared_ptr< Model >& model )
       : _model( model )
     {

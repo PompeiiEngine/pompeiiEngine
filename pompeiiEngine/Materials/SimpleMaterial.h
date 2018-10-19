@@ -1,14 +1,14 @@
 #pragma once
 
-#include "IMaterial.h"
-#include <glm/glm.hpp>
+#include "Material.h"
+#include "../includes.hpp"
 
 namespace pompeii
 {
   namespace engine
   {
     class SimpleMaterial
-      : public IMaterial
+      : public Material
     {
       IMPLEMENT_COMPONENT( SimpleMaterial )
     private:

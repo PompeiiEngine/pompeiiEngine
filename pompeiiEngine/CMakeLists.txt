@@ -1,19 +1,33 @@
 include_directories(
   ${PROJECT_BINARY_DIR}/include
   ${PROJECT_SOURCE_DIR}
-  #${PROJECT_SOURCE_DIR}/pompeii
+  ${PROJECT_SOURCE_DIR}/pompeii
+  
+  ${VULKAN_INCLUDE_DIR} # TODO: WHY?
+  
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 source_group(\\ FILES CMakeLists.txt)
 
 set( POMPEIIENGINE_PUBLIC_HEADERS
-  IComponent.h
+  Components/Component.h
   GameObject.h
   Light.h
-  Mesh.h
-  IMaterial.h
-  SimpleMaterial.h
+  Meshes/Model.h
+  Meshes/Mesh.h
+  Materials/Material.h
+  Materials/MaterialPipeline.h
+  Materials/SimpleMaterial.h
+
+  Maths/Frustum.h
+  Maths/Mathf.h
+  Maths/Easing.h
+
+  Exceptions/Exception.h
+  Exceptions/FileNotFoundException.h
+  Exceptions/HasParentException.h
+  Exceptions/RuntimeException.h
 )
 set( POMPEIIENGINE_HEADERS
   includes.hpp
@@ -21,8 +35,13 @@ set( POMPEIIENGINE_HEADERS
 )
 set( POMPEIIENGINE_SOURCES
   GameObject.cpp
-  SimpleMaterial.cpp
-  Mesh.cpp
+  Light.cpp
+  Materials/SimpleMaterial.cpp
+  Meshes/Mesh.cpp
+
+  Maths/Frustum.cpp
+  Maths/Mathf.cpp
+  Maths/Easing.cpp
 )
 
 set( POMPEIIENGINE_LINK_LIBRARIES
@@ -49,7 +68,7 @@ set( ENGINEDEMO_SOURCES
   demo.cpp
 )
 set( ENGINEDEMO_LINK_LIBRARIES
-#  pompeii
+  pompeii
   pompeiiEngine
 )
 common_application( EngineDemo )

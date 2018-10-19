@@ -48,7 +48,7 @@ namespace pompeii
       }
     }
 
-    bool GameObject::addComponent( IComponent* comp )
+    bool GameObject::addComponent( Component* comp )
     {
       if ( comp == nullptr )
       {

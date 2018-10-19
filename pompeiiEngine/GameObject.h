@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "IComponent.h"
+#include "Components/Component.h"
 #include <vector>
 #include <memory>
 
@@ -16,7 +16,7 @@ namespace pompeii
       std::string _name;
       GameObject* _parent;
       bool _removed;
-      std::vector< std::unique_ptr< IComponent > > _components;
+      std::vector< std::unique_ptr< Component > > _components;
     public:
       explicit GameObject( /* Transform TODO */ );
       GameObject(const GameObject&) = delete; 
@@ -35,7 +35,7 @@ namespace pompeii
       GameObject* getParent( void ) const { return _parent; }
       void setParent( GameObject* parent ) { _parent = parent; }
 
-      const std::vector< std::unique_ptr< IComponent > >& 
+      const std::vector< std::unique_ptr< Component > >& 
         getComponents( void ) const { return _components; }
 
       uint32_t getComponentCount( void ) const
@@ -67,7 +67,7 @@ namespace pompeii
         return component;
       }
 
-      bool addComponent( IComponent *component );
+      bool addComponent( Component *component );
 
       template<typename T, typename... Args>
       bool addComponent(Args &&... args)
