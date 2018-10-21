@@ -22,8 +22,51 @@
 #include <pompeiiEngine/pompeiiEngine.h>
 using namespace pompeii::engine;
 
+class Uniform
+{
+public:
+  std::string _name;
+  int32_t _binding;
+  int32_t _offset;
+  int32_t _size;
+  int32_t _glType;
+
+  Uniform(const std::string &name, const int32_t &binding, 
+    const int32_t &offset, const int32_t &size, const int32_t &glType )
+    : _name(name)
+    , _binding(binding)
+    , _offset(offset)
+    , _size(size)
+    , _glType(glType)
+  {
+  }
+  
+  bool operator==(const Uniform &other) const
+  {
+    return _name == other._name && _binding == other._binding && _offset == other._offset && _glType == other._glType;
+  }
+
+  bool operator!=(const Uniform &other) const
+  {
+    return !(*this == other);
+  }
+}
+
+class UniformHandler
+{
+private:
+  void* _data;
+  bool _changed;
+};
+
+void tryingUniforms( )
+{
+
+}
+
 int main( int, char** )
 {
+  tryingUniforms( );
   GameObject* world = new GameObject( );
   std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
   Light* l = new Light( );
