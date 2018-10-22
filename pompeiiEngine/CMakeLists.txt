@@ -11,6 +11,9 @@ include_directories(
 source_group(\\ FILES CMakeLists.txt)
 
 set( POMPEIIENGINE_PUBLIC_HEADERS
+  Pipeline.h
+  ShaderProgram.h
+
   Components/Component.h
   GameObject.h
   Light.h
@@ -34,6 +37,8 @@ set( POMPEIIENGINE_HEADERS
   GameObject.inl
 )
 set( POMPEIIENGINE_SOURCES
+  Pipeline.cpp
+  
   GameObject.cpp
   Light.cpp
   Materials/SimpleMaterial.cpp
@@ -45,8 +50,16 @@ set( POMPEIIENGINE_SOURCES
 )
 
 set( POMPEIIENGINE_LINK_LIBRARIES
-#  pompeii
+  pompeii
   ${GLM_LIBRARIES}
+
+
+  
+  
+  glslang
+  OGLCompiler
+  OSDependent
+  SPIRV
 )
 
 set( POMPEIIENGINE_INCLUDE_NAME pompeiiEngine )

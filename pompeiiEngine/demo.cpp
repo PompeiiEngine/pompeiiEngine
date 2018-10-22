@@ -22,52 +22,9 @@
 #include <pompeiiEngine/pompeiiEngine.h>
 using namespace pompeii::engine;
 
-class Uniform
-{
-public:
-  std::string _name;
-  int32_t _binding;
-  int32_t _offset;
-  int32_t _size;
-  int32_t _glType;
-
-  Uniform(const std::string &name, const int32_t &binding, 
-    const int32_t &offset, const int32_t &size, const int32_t &glType )
-    : _name(name)
-    , _binding(binding)
-    , _offset(offset)
-    , _size(size)
-    , _glType(glType)
-  {
-  }
-  
-  bool operator==(const Uniform &other) const
-  {
-    return _name == other._name && _binding == other._binding && _offset == other._offset && _glType == other._glType;
-  }
-
-  bool operator!=(const Uniform &other) const
-  {
-    return !(*this == other);
-  }
-}
-
-class UniformHandler
-{
-private:
-  void* _data;
-  bool _changed;
-};
-
-void tryingUniforms( )
-{
-
-}
-
 int main( int, char** )
 {
-  tryingUniforms( );
-  GameObject* world = new GameObject( );
+  /*GameObject* world = new GameObject( );
   std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
   Light* l = new Light( );
   world->addComponent( l );
@@ -82,6 +39,55 @@ int main( int, char** )
 
   auto sun = new GameObject( );
   sun->addComponent< Mesh >( std::make_shared< Model > ( ) );
-  sun->addComponent< SimpleMaterial > ( glm::vec3( 1.0f, 0.0f, 0.0f ) );
+  sun->addComponent< SimpleMaterial > ( glm::vec3( 1.0f, 0.0f, 0.0f ) );*/
+
+  ShaderProgram program ("fooProgram");
+
+  program.addShader( R"(#version 450
+
+    layout( location = 0 ) in vec3 inPos;
+    layout( location = 1 ) in vec3 inNormal;
+    layout( location = 2 ) in vec2 inUV;
+
+    layout( location = 0 ) out vec3 outNormal;
+    layout( location = 1 ) out vec2 outUV;
+
+    layout(binding = 0) uniform Ubo0
+    {
+      mat4 proj;
+      mat4 view;
+    } ubo0;
+
+    layout( push_constant ) uniform PushConsts
+    {
+      mat4 model;
+      mat3 normal;
+    } pcte;
+
+    void main( ) 
+    {
+      gl_Position = ubo0.proj * ubo0.view * pcte.model * vec4( inPos.xyz, 1.0 );
+      outNormal = pcte.normal * inNormal;
+      outUV = inUV;
+    } )", vk::ShaderStageFlagBits::eVertex );
+  program.addShader( R"(#version 450
+
+    layout( location = 0 ) in vec3 inNormal;
+    layout( location = 1 ) in vec2 inUV;
+
+    layout(binding = 1) uniform sampler2D texSampler;
+
+    layout( location = 0 ) out vec4 outFragColor;
+
+    void main( ) 
+    {
+      vec3 color = texture( texSampler, inUV ).rgb;
+      outFragColor = vec4( inNormal + color, 1.0 );
+    } )", vk::ShaderStageFlagBits::eFragment );
+
+  //program.ProcessShader( );
+
+  program.dump( );
+
   return EXIT_SUCCESS;
 }
