@@ -1,5 +1,7 @@
 #include "Pipeline.h"
 
+#include "ShaderProgram.h"
+
 namespace pompeii
 {
   namespace engine

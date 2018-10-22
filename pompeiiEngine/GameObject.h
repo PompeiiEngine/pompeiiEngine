@@ -38,11 +38,6 @@ namespace pompeii
       const std::vector< std::unique_ptr< Component > >& 
         getComponents( void ) const { return _components; }
 
-      uint32_t getComponentCount( void ) const
-      {
-        return _components.size( );
-      }
-
       template< class T >
       T* getComponent( bool checkDisabled = false )
       {
@@ -96,6 +91,27 @@ namespace pompeii
         return false;
       }
       bool removeComponent( const std::string& name );
+
+
+      template< class T >
+      bool hasComponent( void )
+      {
+        for ( auto it = _components.begin( );
+          it != _components.end( ); ++it )
+        {
+          auto comp = dynamic_cast< T* >( ( *it ).get( ) );
+
+          if ( comp != nullptr )
+          {
+            return true;
+          }
+        }
+
+        return false;
+      }
+      bool hasComponent( const std::string& name );
+
+      
 
       #include "GameObject.inl"
     };

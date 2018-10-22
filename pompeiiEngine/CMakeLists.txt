@@ -14,6 +14,10 @@ set( POMPEIIENGINE_PUBLIC_HEADERS
   Pipeline.h
   ShaderProgram.h
 
+  ISystem.h
+  SystemRegister.h
+  SystemUpdater.h
+
   Components/Component.h
   GameObject.h
   Light.h

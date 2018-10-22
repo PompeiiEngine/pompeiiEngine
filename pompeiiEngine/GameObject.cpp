@@ -80,5 +80,21 @@ namespace pompeii
 
       return false;
     }
+
+    bool GameObject::hasComponent( const std::string& name )
+    {
+      for ( auto it = _components.begin( );
+        it != _components.end( ); ++it )
+      {
+        auto componentName = (*it)->GetUID( );
+
+        if ( name == componentName )
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
   }
 }
