@@ -16,10 +16,8 @@ namespace pompeii
     private:
       std::map< float, std::unique_ptr< ISystem > > _systems;
     public:
-      SystemRegister( void )
-      {
-        //registerSystem< Renderer >( ISystem::UpdateType::Render );
-      }
+      SystemRegister( void );
+      
       bool has( ISystem* system ) const
       {
         for ( auto it = _systems.begin( ); it != _systems.end( ); ++it )
@@ -55,7 +53,7 @@ namespace pompeii
         }
         float key = static_cast<float>(update) + 
           (0.01f * static_cast<float>(_systems.size()));
-        //_systems.emplace(key, system);
+        _systems.emplace(key, std::unique_ptr<ISystem>(system));
         return system;
       }
 

@@ -1,11 +1,13 @@
 #pragma once
 
+#include "../Engine.h"
+#include "../DisplaySystem.h"
+
 namespace pompeii
 {
   namespace engine
   {
     class Model
-    //  : public VulkanResource
     {
     private:
       std::shared_ptr< VertexBuffer > _vertexBuffer;
@@ -26,22 +28,31 @@ namespace pompeii
       explicit Model( const std::vector< T>& verts,
         const std::vector< uint32_t>& indices = { } )
       {
+        auto display = Engine::instance( )->getSystem< DisplaySystem >( );
+        auto device = display->getDevice( );
+
         if( !verts.empty( ) )
         {
           _vertexCount = verts.size( );
 
-          _vertexBuffer->writeData( 0,
-            sizeof( T ) * _vertexCount,
+          _vertexBuffer = device->createVertexBuffer( _vertexCount * sizeof( T ) );
+
+          // Copies the vertex data to the buffer.
+          _vertexBuffer->writeData( 0, sizeof( T ) * _vertexCount,
             verts.data( ) );
+          std::cout << "VBO OK" << std::endl;
         }
         if( !indices.empty( ) )
         {
-
           _indexCount = indices.size( );
 
-          _indexBuffer->writeData( 0,
-            sizeof( uint32_t ) * _indexCount,
+          _indexBuffer = device->createIndexBuffer( vk::IndexType::eUint32, 
+            _indexCount * sizeof( uint32_t ) );
+
+          // Copies the indices data to the buffer.
+          _indexBuffer->writeData( 0, sizeof( uint32_t ) * _indexCount,
             indices.data( ) );
+          std::cout << "IBO OK" << std::endl;
         }
 
 

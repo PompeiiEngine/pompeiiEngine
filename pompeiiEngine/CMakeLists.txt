@@ -11,12 +11,18 @@ include_directories(
 source_group(\\ FILES CMakeLists.txt)
 
 set( POMPEIIENGINE_PUBLIC_HEADERS
+  Engine.h
+
+  DisplaySystem.h
+  
   Pipeline.h
   ShaderProgram.h
 
   ISystem.h
   SystemRegister.h
   SystemUpdater.h
+
+  SceneSystem.h
 
   Components/Component.h
   GameObject.h
@@ -30,18 +36,34 @@ set( POMPEIIENGINE_PUBLIC_HEADERS
   Maths/Frustum.h
   Maths/Mathf.h
   Maths/Easing.h
+  Maths/Transform.h
 
   Exceptions/Exception.h
   Exceptions/FileNotFoundException.h
   Exceptions/HasParentException.h
   Exceptions/RuntimeException.h
+
+  Visitor.h
+  UpdateWorldVisitor.h
+  DumpVisitor.h
+  ComputeBatchQueue.h
+
+  ICamera.h
 )
 set( POMPEIIENGINE_HEADERS
   includes.hpp
-  GameObject.inl
+  #GameObject.inl
 )
 set( POMPEIIENGINE_SOURCES
+  Engine.cpp
+
+  DisplaySystem.cpp
+
+  SystemRegister.cpp
+
   Pipeline.cpp
+
+  Engine.cpp
   
   GameObject.cpp
   Light.cpp
@@ -51,11 +73,17 @@ set( POMPEIIENGINE_SOURCES
   Maths/Frustum.cpp
   Maths/Mathf.cpp
   Maths/Easing.cpp
+
+  Visitor.cpp
+  UpdateWorldVisitor.cpp
+  DumpVisitor.cpp
+  ComputeBatchQueue.cpp
 )
 
 set( POMPEIIENGINE_LINK_LIBRARIES
   pompeii
   ${GLM_LIBRARIES}
+  ${GLFW3_LIBRARIES}
 
 
   

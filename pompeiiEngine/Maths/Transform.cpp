@@ -1,6 +1,6 @@
 #include "Transform.h"
 
-namespace pompeii
+/*namespace pompeii
 {
   namespace engine
   {
@@ -65,4 +65,4 @@ namespace pompeii
       return stream;
     }
   }
-}
+}*/

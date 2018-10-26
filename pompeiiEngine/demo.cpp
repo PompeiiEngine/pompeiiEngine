@@ -1,93 +1,172 @@
-/**
- * Copyright (c) 2017 - 2018, Pompeii
- * All rights reserved.
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- **/
-
 #include <iostream>
 
+#include <pompeii/pompeii.h>
 #include <pompeiiEngine/pompeiiEngine.h>
+using namespace pompeii;
 using namespace pompeii::engine;
+
+#include <glm/gtc/type_ptr.hpp>
+
+class UniformHandler
+{
+public:
+  UniformBlock* uBlock;
+  //std::shared_ptr< UniformBuffer > ubo;
+  void* data;
+  bool changed = false;
+
+
+  explicit UniformHandler( void )
+    : uBlock( nullptr )
+    , data( nullptr )
+    , changed( false )
+  {
+  }
+
+  explicit UniformHandler(UniformBlock* uniformBlock)
+    : uBlock( uniformBlock )
+    , data(malloc(static_cast< uint32_t >(uniformBlock->size)))
+    , changed( true )
+  {
+
+  }
+
+  ~UniformHandler()
+  {
+    free( data );
+  }
+
+  template< typename T >
+  void push( const T& obj, uint32_t offset, uint32_t size )
+  {
+    //std::copy( ( char* ) data, ( char* ) data + offset, &obj );
+
+    memcpy( ( char* ) data + offset, &obj, size );
+    changed = true;
+  }
+  template< typename T >
+  void push( const std::string& uboName, const T& obj, uint32_t size = 0 )
+  {
+    if(uBlock == nullptr) throw;
+    auto u = uBlock->getUniform( uboName );
+    if(u == nullptr) throw;
+
+    uint32_t size_ = size;
+    if( size_ == 0 )
+    {
+      size_ = std::min( static_cast< uint32_t > ( sizeof( obj ) ),
+        static_cast< uint32_t > ( u->size ) );
+    }
+    push( obj, static_cast<uint32_t>( u->offset ), size_ );
+  }
+
+  bool update( UniformBlock* ub = nullptr )
+  {
+    if( ub != uBlock )
+    {
+      // reset
+      uBlock = ub;
+      // ubo = new ...
+      data = malloc( static_cast< uint32_t > ( ub->size ) );
+      changed = false;
+      return false;
+    }
+    if( changed )
+    {
+      // ubo->update( data );
+      changed = false;
+    }
+    return true;
+  }
+};
 
 int main( int, char** )
 {
-  /*GameObject* world = new GameObject( );
-  std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
-  Light* l = new Light( );
-  world->addComponent( l );
-  std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
-  world->addComponent( new Mesh( ) );
-  std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
-  world->removeComponent< Light >( );
-  std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
-  world->removeComponent( Mesh::StaticGetUID( ) );
-  std::cout << "Num. components: " << world->getComponentCount( ) << std::endl;
-  delete world;
-
-  auto sun = new GameObject( );
-  sun->addComponent< Mesh >( std::make_shared< Model > ( ) );
-  sun->addComponent< SimpleMaterial > ( glm::vec3( 1.0f, 0.0f, 0.0f ) );*/
-
   ShaderProgram program ("fooProgram");
 
   program.addShader( R"(#version 450
+    #extension GL_ARB_separate_shader_objects : enable
+    #extension GL_ARB_shading_language_420pack : enable
 
-    layout( location = 0 ) in vec3 inPos;
-    layout( location = 1 ) in vec3 inNormal;
-    layout( location = 2 ) in vec2 inUV;
-
-    layout( location = 0 ) out vec3 outNormal;
-    layout( location = 1 ) out vec2 outUV;
-
-    layout(binding = 0) uniform Ubo0
+    layout(set = 0, binding = 0) uniform UboObject
     {
-      mat4 proj;
-      mat4 view;
-    } ubo0;
+      vec4 transform;
+      vec4 colourOffset;
+      vec2 atlasOffset;
+      float atlasRows;
+      float alpha;
+    } object;
 
-    layout( push_constant ) uniform PushConsts
-    {
-      mat4 model;
-      mat3 normal;
-    } pcte;
+    layout(set = 0, location = 0) in vec3 inPosition;
+    layout(set = 0, location = 1) in vec2 inUv;
 
-    void main( ) 
+    layout(location = 0) out vec2 outUv;
+
+    out gl_PerVertex 
     {
-      gl_Position = ubo0.proj * ubo0.view * pcte.model * vec4( inPos.xyz, 1.0 );
-      outNormal = pcte.normal * inNormal;
-      outUV = inUV;
+      vec4 gl_Position;
+    };
+
+    void main()
+    {
+      gl_Position = vec4((inPosition.xy * object.transform.xy) + object.transform.zw, 0.0f, 1.0f);
+
+      outUv = (inUv.xy / object.atlasRows) + object.atlasOffset;
     } )", vk::ShaderStageFlagBits::eVertex );
   program.addShader( R"(#version 450
+    #extension GL_ARB_separate_shader_objects : enable
+    #extension GL_ARB_shading_language_420pack : enable
 
-    layout( location = 0 ) in vec3 inNormal;
-    layout( location = 1 ) in vec2 inUV;
-
-    layout(binding = 1) uniform sampler2D texSampler;
-
-    layout( location = 0 ) out vec4 outFragColor;
-
-    void main( ) 
+    layout(set = 0, binding = 0) uniform UboObject
     {
-      vec3 color = texture( texSampler, inUV ).rgb;
-      outFragColor = vec4( inNormal + color, 1.0 );
+      vec4 transform;
+      vec4 colourOffset;
+      vec2 atlasOffset;
+      float atlasRows;
+      float alpha;
+    } object;
+
+    layout(set = 0, binding = 1) uniform sampler2D samplerColour;
+
+    layout(location = 0) in vec2 inUv;
+
+    layout(location = 0) out vec4 outColour;
+
+    void main() 
+    {
+      outColour = texture(samplerColour, inUv) * vec4(object.colourOffset.rgb, 1.0f);
+      outColour.a *= object.alpha;
+
+      if (outColour.a < 0.05f)
+      {
+        outColour = vec4(0.0f);
+        discard;
+      }
     } )", vk::ShaderStageFlagBits::eFragment );
 
-  //program.ProcessShader( );
+  program.ProcessShader( );
 
   program.dump( );
 
+  UniformBlock* ub;
+  for( const auto& ubb: program.uniformBlocks )
+  {
+    if(ubb.get( )->name == "UboObject")
+    {
+      ub = ubb.get( );
+      break;
+    }
+  }
+
+  std::cout << "SIZE: " << ub->size << std::endl;
+
+  UniformHandler uh(ub);
+
+  uh.push("colourOffset", glm::value_ptr( glm::vec4( 1.0f ) ) );
+  uh.push("atlasOffset", glm::value_ptr( glm::vec2( ) ) );
+  uh.push("alpha", 1.25f);
+
+
+  
   return EXIT_SUCCESS;
 }

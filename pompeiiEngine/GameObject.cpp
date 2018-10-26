@@ -4,7 +4,10 @@ namespace pompeii
 {
   namespace engine
   {
-    GameObject::GameObject( )
+    GameObject::GameObject( const std::string& name, const Transform& t )
+      : _name( name )
+      , _transform( t )
+      , _parent( nullptr )
     {
 
     }
@@ -46,6 +49,22 @@ namespace pompeii
 
         ++it;
       }
+    }
+
+    Component* GameObject::getComponent( const std::string& name )
+    {
+      for ( auto it = _components.begin( );
+        it != _components.end( ); ++it )
+      {
+        auto componentName = (*it)->GetUID( );
+
+        if ( name == componentName )
+        {
+          return ( *it ).get( );
+        }
+      }
+
+      return nullptr;
     }
 
     bool GameObject::addComponent( Component* comp )

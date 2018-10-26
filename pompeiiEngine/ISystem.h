@@ -9,11 +9,11 @@ namespace pompeii
     public:
       enum class UpdateType
       {
-        Always,
-        Pre,
-        Normal,
-        Post,
-        Render
+        Always = 0,
+        Pre = 1,
+        Normal = 2,
+        Post = 3,
+        Render = 4
       };
 
       virtual void update( void ) = 0;

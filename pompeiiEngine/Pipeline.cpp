@@ -8,7 +8,7 @@ namespace pompeii
   {
     void GraphicPipeline::createShaderProgram( void )
     {
-      ShaderProgram program ("fooProgram");
+      ShaderProgram program( "fooProgram" );
 
 
     }
