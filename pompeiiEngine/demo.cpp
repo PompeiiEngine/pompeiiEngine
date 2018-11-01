@@ -1,43 +1,142 @@
-#include <iostream>
-
 #include <pompeii/pompeii.h>
 #include <pompeiiEngine/pompeiiEngine.h>
 using namespace pompeii;
 using namespace pompeii::engine;
 
-#include <glm/gtc/type_ptr.hpp>
+#include <routes.h>
 
-class UniformHandler
+std::shared_ptr< Device > device;
+
+
+
+class ComputePipeline2
+{
+public:
+  ComputePipeline2( const std::string& shader )
+    : _shaderProgram( std::make_unique< ShaderProgram >( "program" ) )
+  {
+    //auto display = Engine::instance( )->getSystem< DisplaySystem >( );
+    //_device = display->getDevice( );
+    _device = device;
+
+    createShaderProgram( shader );
+    createDescriptorLayout( );
+    
+
+    // TODO _descriptorPool = ;
+    std::vector<vk::DescriptorPoolSize> poolSizes;
+    for( const auto& desc: _shaderProgram->descriptors )
+    {
+      poolSizes.emplace_back( vk::DescriptorPoolSize( desc.descriptorType, 3 ) ); // TODO: HARCODED!!
+    }
+
+    _descriptorPool = device->createDescriptorPool( 1, poolSizes );
+
+    _pipelineLayout = _device->createPipelineLayout( 
+      _descriptorSetLayout, _shaderProgram->pushConstantRange
+    );
+    
+    auto computeStage = _device->createShaderPipelineShaderStage(
+      _shaderModule,
+      vk::ShaderStageFlagBits::eCompute
+    );
+    _pipeline = _device->createComputePipeline( nullptr, {}, computeStage, _pipelineLayout ); 
+  }
+  ~ComputePipeline2( void )
+  {
+    _device->waitIdle( );
+
+    _shaderModule.reset( );
+    _descriptorSetLayout.reset( );
+    // TODO: NECESARY THIS?? _descriptorPool.reset( );
+    _pipeline.reset( );
+    _pipelineLayout.reset( );
+  }
+
+  void dispatch( const std::shared_ptr< CommandBuffer >& cmd, uint32_t groupX, uint32_t groupY, uint32_t groupZ )
+  {
+    cmd->dispatch( groupX, groupY, groupZ );
+  }
+
+  bool cmdRender( const std::shared_ptr< CommandBuffer >& cmd )
+  {
+    cmd->dispatch( 1, 1, 1 );// TODO: groupX, groupY, groupZ );
+  }
+  std::shared_ptr< DescriptorSetLayout > getDescriptorSetLayout( void ) const
+  {
+    return _descriptorSetLayout;
+  }
+  std::shared_ptr< DescriptorPool > getDescriptorPool( void ) const
+  {
+    return _descriptorPool;
+  }
+  std::shared_ptr< Pipeline > getPipeline( void ) const
+  {
+    return _pipeline;
+  }
+  std::shared_ptr< PipelineLayout > getPipelineLayout( void ) const
+  {
+    return _pipelineLayout;
+  }
+private:
+  void createShaderProgram( const std::string& shader )
+  {
+    _shaderModule = _device->createShaderModule( _shaderProgram->addShader( shader, vk::ShaderStageFlagBits::eCompute ) );
+
+    _shaderProgram->processShader( );
+
+    _shaderProgram->dump( );
+  }
+
+  void createDescriptorLayout( void )
+  {
+    _descriptorSetLayout = _device->createDescriptorSetLayout( 
+      _shaderProgram->descriptors
+    );
+  }
+private:
+  std::unique_ptr< ShaderProgram > _shaderProgram;
+  std::shared_ptr< ShaderModule > _shaderModule;
+  std::shared_ptr< Device > _device;
+  std::shared_ptr< DescriptorPool > _descriptorPool;
+  std::shared_ptr< DescriptorSetLayout > _descriptorSetLayout;
+  std::shared_ptr< PipelineLayout > _pipelineLayout;
+  std::shared_ptr< Pipeline > _pipeline;
+};
+
+
+class StorageHandler
 {
 public:
   UniformBlock* uBlock;
-  //std::shared_ptr< UniformBuffer > ubo;
+  std::shared_ptr< StorageBuffer > storage;
   void* data;
   bool changed = false;
 
-
-  explicit UniformHandler( void )
+  explicit StorageHandler( void )
     : uBlock( nullptr )
+    , storage( nullptr )
     , data( nullptr )
     , changed( false )
   {
   }
 
-  explicit UniformHandler(UniformBlock* uniformBlock)
+  explicit StorageHandler(UniformBlock* uniformBlock)
     : uBlock( uniformBlock )
+    , storage( device->createStorageBuffer( uBlock->size ) )
     , data(malloc(static_cast< uint32_t >(uniformBlock->size)))
     , changed( true )
   {
 
   }
 
-  ~UniformHandler()
+  ~StorageHandler()
   {
     free( data );
   }
 
   template< typename T >
-  void push( const T& obj, uint32_t offset, uint32_t size )
+  void setUniform( const T& obj, uint32_t offset, uint32_t size )
   {
     //std::copy( ( char* ) data, ( char* ) data + offset, &obj );
 
@@ -45,7 +144,7 @@ public:
     changed = true;
   }
   template< typename T >
-  void push( const std::string& uboName, const T& obj, uint32_t size = 0 )
+  void setUniform( const std::string& uboName, const T& obj, uint32_t size = 0 )
   {
     if(uBlock == nullptr) throw;
     auto u = uBlock->getUniform( uboName );
@@ -57,7 +156,7 @@ public:
       size_ = std::min( static_cast< uint32_t > ( sizeof( obj ) ),
         static_cast< uint32_t > ( u->size ) );
     }
-    push( obj, static_cast<uint32_t>( u->offset ), size_ );
+    setUniform( obj, static_cast<uint32_t>( u->offset ), size_ );
   }
 
   bool update( UniformBlock* ub = nullptr )
@@ -66,107 +165,287 @@ public:
     {
       // reset
       uBlock = ub;
-      // ubo = new ...
+      storage = device->createStorageBuffer( uBlock->size );
       data = malloc( static_cast< uint32_t > ( ub->size ) );
       changed = false;
       return false;
     }
     if( changed )
     {
-      // ubo->update( data );
+      storage->set( data );
       changed = false;
     }
     return true;
   }
 };
 
-int main( int, char** )
+class DescriptorSet2;
+
+class IDescriptor
 {
-  ShaderProgram program ("fooProgram");
+public:
+  virtual WriteDescriptorSet getWriteDescriptor( const uint32_t& binding, const ::DescriptorSet2& descriptorSet ) const = 0;
+};
 
-  program.addShader( R"(#version 450
-    #extension GL_ARB_separate_shader_objects : enable
-    #extension GL_ARB_shading_language_420pack : enable
-
-    layout(set = 0, binding = 0) uniform UboObject
-    {
-      vec4 transform;
-      vec4 colourOffset;
-      vec2 atlasOffset;
-      float atlasRows;
-      float alpha;
-    } object;
-
-    layout(set = 0, location = 0) in vec3 inPosition;
-    layout(set = 0, location = 1) in vec2 inUv;
-
-    layout(location = 0) out vec2 outUv;
-
-    out gl_PerVertex 
-    {
-      vec4 gl_Position;
-    };
-
-    void main()
-    {
-      gl_Position = vec4((inPosition.xy * object.transform.xy) + object.transform.zw, 0.0f, 1.0f);
-
-      outUv = (inUv.xy / object.atlasRows) + object.atlasOffset;
-    } )", vk::ShaderStageFlagBits::eVertex );
-  program.addShader( R"(#version 450
-    #extension GL_ARB_separate_shader_objects : enable
-    #extension GL_ARB_shading_language_420pack : enable
-
-    layout(set = 0, binding = 0) uniform UboObject
-    {
-      vec4 transform;
-      vec4 colourOffset;
-      vec2 atlasOffset;
-      float atlasRows;
-      float alpha;
-    } object;
-
-    layout(set = 0, binding = 1) uniform sampler2D samplerColour;
-
-    layout(location = 0) in vec2 inUv;
-
-    layout(location = 0) out vec4 outColour;
-
-    void main() 
-    {
-      outColour = texture(samplerColour, inUv) * vec4(object.colourOffset.rgb, 1.0f);
-      outColour.a *= object.alpha;
-
-      if (outColour.a < 0.05f)
-      {
-        outColour = vec4(0.0f);
-        discard;
-      }
-    } )", vk::ShaderStageFlagBits::eFragment );
-
-  program.ProcessShader( );
-
-  program.dump( );
-
-  UniformBlock* ub;
-  for( const auto& ubb: program.uniformBlocks )
+class DescriptorSet2
+{
+protected:
+  std::shared_ptr< PipelineLayout > _pipelineLayout;
+  std::shared_ptr< DescriptorPool > _descriptorPool;
+public:
+  std::shared_ptr< DescriptorSet > _descriptorSet;
+public:
+  explicit DescriptorSet2( const ComputePipeline2& pipeline )
+    : _pipelineLayout( pipeline.getPipelineLayout( ) )
+    , _descriptorPool( pipeline.getDescriptorPool( ) )
+    , _descriptorSet( nullptr )
   {
-    if(ubb.get( )->name == "UboObject")
+    auto _device = device;
+
+    _descriptorSet = _device->allocateDescriptorSet( _descriptorPool, pipeline.getDescriptorSetLayout( ) );
+  }
+  ~DescriptorSet2( )
+  {
+    _descriptorSet.reset( );
+  }
+  void update( std::vector< IDescriptor*>& descriptors )
+  {
+    auto _device = device;
+    std::vector<WriteDescriptorSet> wdss;
+    for( uint32_t i = 0; i < descriptors.size( ); ++i )
     {
-      ub = ubb.get( );
-      break;
+      if( descriptors.at( i ) != nullptr )
+      {
+        wdss.emplace_back( descriptors.at( i )->getWriteDescriptor( i, *this ) );
+      }
     }
+    _device->updateDescriptorSets( wdss, { } );
+    /* =
+    {
+      WriteDescriptorSet( descriptorSet, 0, 0,
+        vk::DescriptorType::eStorageBuffer, 1, nullptr,
+        DescriptorBufferInfo( inABuffer, 0, bufferSize )
+      ),
+      WriteDescriptorSet( descriptorSet, 1, 0,
+        vk::DescriptorType::eStorageBuffer, 1, nullptr,
+        DescriptorBufferInfo( inBBuffer, 0, bufferSize )
+      ),
+      WriteDescriptorSet( descriptorSet, 2, 0,
+        vk::DescriptorType::eStorageBuffer, 1, nullptr,
+        DescriptorBufferInfo( outBuffer, 0, bufferSize )
+      )
+    };
+    device->updateDescriptorSets( wdss, { } );*/
   }
 
-  std::cout << "SIZE: " << ub->size << std::endl;
+  void bindDescriptor( const std::shared_ptr< CommandBuffer >& cmd )
+  {
+    cmd->bindDescriptorSets( vk::PipelineBindPoint::eCompute, _pipelineLayout, 0, { _descriptorSet }, { } );
+  }
+};
 
-  UniformHandler uh(ub);
+/*class StorageBuffer2
+  : public pompeii::StorageBuffer
+  , public IDescriptor
+{
+public:
+  virtual WriteDescriptorSet getWriteDescriptor( 
+    const uint32_t& binding, const ::DescriptorSet2& descriptorSet ) const override
+  {
+    return WriteDescriptorSet( descriptorSet._descriptorSet, binding, 0,
+      vk::DescriptorType::eStorageBuffer, 1, nullptr,
+      DescriptorBufferInfo( shared_from_this( ), 0, _size )
+    );
+  }
+};*/
 
-  uh.push("colourOffset", glm::value_ptr( glm::vec4( 1.0f ) ) );
-  uh.push("atlasOffset", glm::value_ptr( glm::vec2( ) ) );
-  uh.push("alpha", 1.25f);
+int main( void )
+{
+  std::cout << "Create Vulkan Instance...";
+    auto instance = Instance::createDefault( "Compute Sum" );
+  std::cout << "OK" << std::endl;
+
+  std::cout << "Find Vulkan physical device...";
+    // Find a physical device with presentation support
+    assert( instance->getPhysicalDeviceCount( ) != 0 );
+    auto physicalDevice = instance->getPhysicalDevice( 0 );
+    if ( !physicalDevice )
+    {
+      POMPEII_RUNTIME_ERROR( "Failed to find a device with presentation support" );
+    }
+  std::cout << "OK" << std::endl;
+
+  std::cout << "Create logical device...";
+    // Search for a compute queue in the array of 
+    //    queue families, try to find one that support
+    auto queueFamilyIndices = physicalDevice->getComputeQueueFamilyIndices( );
+    assert( !queueFamilyIndices.empty( ) );
+    const uint32_t queueFamilyIndex = queueFamilyIndices[ 0 ];
+    std::vector<float> queuePriorities = { 1.0f };
+    vk::DeviceQueueCreateInfo queueCreateInfo;
+    queueCreateInfo.queueFamilyIndex = static_cast<uint32_t>( queueFamilyIndex );
+    queueCreateInfo.queueCount = static_cast<uint32_t>( queuePriorities.size( ) );
+    queueCreateInfo.pQueuePriorities = &queuePriorities[ 0 ];
+    vk::DeviceCreateInfo deviceCreateInfo;
+    deviceCreateInfo.enabledExtensionCount = 0;
+    deviceCreateInfo.ppEnabledExtensionNames = nullptr;
+    deviceCreateInfo.queueCreateInfoCount = 1;
+    deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+
+    device = physicalDevice->createDevice(
+      { queueCreateInfo }, { }, { },  physicalDevice->getDeviceFeatures( )
+    );
+  std::cout << "OK" << std::endl;
+
+  std::cout << "Allocate buffers...";
+    const uint32_t bufferElements = 10;
+    const vk::DeviceSize bufferSize = bufferElements * sizeof( int32_t );
+    std::shared_ptr< StorageBuffer > inABuffer, inBBuffer, outBuffer;
+    inABuffer = device->createStorageBuffer( bufferSize );
+    inBBuffer = device->createStorageBuffer( bufferSize );
+    outBuffer = device->createStorageBuffer( bufferSize );
+  std::cout << "OK" << std::endl;
 
 
-  
-  return EXIT_SUCCESS;
+  ::ComputePipeline2 cp( R"(#version 450
+    layout( local_size_x = 1, local_size_y = 1 ) in;
+    
+    layout(std430, binding = 0) buffer InputBufferA
+    {
+      float inA[ ];
+    };
+    layout(std430, binding = 1) buffer InputBufferB
+    {
+      float inB[ ];
+    };
+    layout(std430, binding = 2) buffer OutputBuffer
+    {
+      float outBuffer[ ];
+    };
+
+    #define ID gl_GlobalInvocationID.x
+
+    void main( )
+    {
+      outBuffer[ ID ] = inA[ ID ] + inB[ ID ];
+    } )" );
+
+    auto descriptorSet = device->allocateDescriptorSet( cp.getDescriptorPool( ), cp.getDescriptorSetLayout( ) );
+  std::cout << "OK" << std::endl;
+
+  std::cout << "Prepare commands buffers...";
+    auto commandPool = device->createCommandPool( { }, queueFamilyIndex );
+  std::cout << "OK" << std::endl;
+
+  std::cout << "Prepare descriptors set...";
+    std::vector< WriteDescriptorSet > wdss =
+    {
+      WriteDescriptorSet( descriptorSet, 0, 0,
+        vk::DescriptorType::eStorageBuffer, 1, nullptr,
+        DescriptorBufferInfo( inABuffer, 0, bufferSize )
+      ),
+      WriteDescriptorSet( descriptorSet, 1, 0,
+        vk::DescriptorType::eStorageBuffer, 1, nullptr,
+        DescriptorBufferInfo( inBBuffer, 0, bufferSize )
+      ),
+      WriteDescriptorSet( descriptorSet, 2, 0,
+        vk::DescriptorType::eStorageBuffer, 1, nullptr,
+        DescriptorBufferInfo( outBuffer, 0, bufferSize )
+      )
+    };
+    device->updateDescriptorSets( wdss, { } );
+  std::cout << "OK" << std::endl;
+
+  std::cout << "Upload input data...";
+    std::vector<float> hostDataA( bufferElements );
+    const float min = 1.0f, max = 99.0f;
+    for ( float& n : hostDataA )
+    {
+      n = ( max - min ) * ( ( ( ( float ) rand( ) ) / ( float ) RAND_MAX ) ) + min;
+    }
+    inABuffer->writeData( 0, bufferSize, hostDataA.data( ) );
+
+    std::vector<float> hostDataB( bufferElements );
+
+    std::vector<float> cpuResult( bufferElements );
+    size_t i = 0;
+    for ( float& n : hostDataB )
+    {
+      n = min + ( max - min ) * ( ( ( ( float ) rand( ) ) / ( float ) RAND_MAX ) ) + min;
+
+      cpuResult[ i ] = hostDataA[ i ] + n;
+      ++i;
+    }
+    inBBuffer->writeData( 0, bufferSize, hostDataB.data( ) );
+  std::cout << "OK" << std::endl;
+
+  std::cout << "Input data:" << std::endl;
+
+  for ( i = 0; i < bufferElements; ++i )
+  {
+    std::cout << (hostDataA[ i ] + hostDataB[ i ]) << ", ";
+  }
+  std::cout << "..., " << ( hostDataA[ bufferElements - 1 ] + 
+    hostDataB[ bufferElements - 1 ]) << std::endl;
+
+  std::cout << "Run computations...";
+
+  // Now create an event and wait for it on the GPU
+  auto ev = device->createEvent( );
+
+  auto commandBuffer = commandPool->allocateCommandBuffer( );
+  commandBuffer->begin( vk::CommandBufferUsageFlagBits::eOneTimeSubmit );
+
+  commandBuffer->setEvent( ev, vk::PipelineStageFlagBits::eBottomOfPipe );
+
+  commandBuffer->bindComputePipeline( cp.getPipeline( ) );
+  commandBuffer->bindDescriptorSets( vk::PipelineBindPoint::eCompute, 
+    cp.getPipelineLayout( ), 0, { descriptorSet }, { } );
+  commandBuffer->dispatch( bufferElements, 1, 1 );
+  commandBuffer->end( );
+
+  auto queue = device->getQueue( queueFamilyIndex, 0 );
+
+  // Look for the event on the CPU. It should be RESET since we haven't sent
+  // the command buffer yet.
+  auto res = ev->getStatus( );
+  assert( res == vk::Result::eEventReset );
+
+  // Send the command buffer and loop waiting for the event
+  queue->submit( commandBuffer );
+
+  int polls = 0;
+  do
+  {
+    res = ev->getStatus( );
+    ++polls;
+  } while ( res != vk::Result::eEventSet );
+  printf( "%d polls to find the event set\n", polls );
+
+  queue->waitIdle( );
+
+  std::cout << "OK" << std::endl;
+
+  std::cout << "Read results...";
+  std::vector<float> result( bufferElements );
+  outBuffer->readData( 0, bufferSize, result.data( ) );
+
+  if ( std::equal( result.begin( ), result.end( ), 
+    cpuResult.begin( ), []( float r, float h ) { return r == h; } ) )
+  {
+    std::cout << "Ok. Same arays as equals." << std::endl;
+  }
+  else
+  {
+    std::cout << "Fail. Invalid result." << std::endl;
+  }
+
+  std::cout << "Output data:" << std::endl;
+  for ( i = 0; i < bufferElements; ++i )
+  {
+    std::cout << result[ i ] << ", ";
+  }
+  std::cout << "..., " << result[ bufferElements - 1 ] << std::endl;
+
+  return 0;
 }

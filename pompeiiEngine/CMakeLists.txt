@@ -49,6 +49,9 @@ set( POMPEIIENGINE_PUBLIC_HEADERS
   ComputeBatchQueue.h
 
   ICamera.h
+
+  PushConstantHandler.h
+  StorageBufferHandler.h
 )
 set( POMPEIIENGINE_HEADERS
   includes.hpp
@@ -56,6 +59,8 @@ set( POMPEIIENGINE_HEADERS
 )
 set( POMPEIIENGINE_SOURCES
   Engine.cpp
+  
+  ShaderProgram.cpp
 
   DisplaySystem.cpp
 
@@ -110,7 +115,7 @@ configure_file(
   ${CMAKE_CURRENT_BINARY_DIR}/routes.h)
 
 set( ENGINEDEMO_SOURCES
-  demo.cpp
+  demo_.cpp
 )
 set( ENGINEDEMO_LINK_LIBRARIES
   pompeii
